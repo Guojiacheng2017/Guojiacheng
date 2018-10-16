@@ -1,0 +1,1139 @@
+/*This is a file to record the block I coded in my end of first acadmic year in college.
+ 	The Group Tour Ticket Booking System is finished by the team I was in. There are only five people.
+	And we are not good at C language then. The code that I have shown here is all by my own work. 
+	So there is a problem that it is not a complete system. It only have the load function and registering function.
+	Also there are some functions used to achieve some other thing.
+	I'm happy to see you to pick up the mistake, or to optimize this system. */
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <time.h>
+//Some headfile might be not used in this file.
+
+struct sort {
+    int mil;//military 军人
+    int stud;//student 学生
+    int ordi;//ordinary 全票价
+    int child;//小孩0-12
+    int middle;//普通人12-70的
+    int old;//老人70+
+    int all;//总人数
+};
+
+struct Infor {
+    char UserID[20];//用户ID
+    char Password[30];//用户密码
+    struct sort num_of_peo;//人数
+    char tel[12];//电话
+    char email[81];//邮箱
+};
+
+/*景点定义*/
+struct scene_infor
+{
+    char ID[16];           //景点ID
+    char NAME[48];        //景点名称
+    char AREA[48];        //景点所属区域
+    char LEVEL[6];        //景点级别
+    int Hprice;           //旺季门票
+    int Lprice;           //淡季门票
+    int Hlimit;           //旺季限流
+    int Llimit;           //淡季限流
+    int COST;             //维护费用
+    float Sdis;             //军人折扣
+    float Cdis;             //学生折扣
+    char TIPS[1024];        //景区简介
+};
+
+struct spot
+{
+    char Id[7];         //景点ID
+    char Name[20];
+    char Introduction[2000];
+    int LowPrice;
+    int HighPrice;
+    char Level[20];
+    int HAnumber;		//Number of people allowed in high season 旺季人数
+    int LAnumber;		//Number of people allowed in low season 淡季人数
+    char area[20];
+    int MaintenanceCost;
+    double SoldierDiscount;
+    double OldDiscount;
+    int BookingNumber;
+    char tips[100];
+};
+
+struct scene{
+    char ID[20];//User ID
+    char ON[20];//order number
+    char OT[20];//order time
+    char SI[30];//scenic ID
+    char VT[20];//visit time
+    int n1;//0~12
+    int n2;//13~70
+    int n3;//70+
+    int total;//total number of visitors
+    int stu;//student
+    int mil;//military
+    float fee;//fee
+    int n4;//slack season
+    int n5;//peak season
+};//历史纪录
+
+typedef struct {
+    char SI[30];//scenic ID
+    int n1;//0~12
+    int n2;//13~70
+    int n3;//70+
+    int total;//total number of visitors
+    float fee;//fee
+    int n4;//slack season
+    int n5;//peak season
+}comp;//比较结构体
+
+typedef struct {
+    char SI[30];//scenic ID
+    float fee;//fee
+}ben;//纯利润结构体
+
+struct order {
+    char user[30];
+    char order_num[30];//订单编号
+    char order_time[13];//预定的时间
+    char sence[7];//景点编号
+    char out_time[13];//出行时间
+    struct sort num_of_peo;//各种人数
+    float price;//总价
+    int peo_in_wang;//旺季人数
+    int peo_in_dan;//淡季人数
+};//订单管理
+
+
+int  loadfun(struct Infor *);//登陆函数
+void registering(struct Infor *);//注册函数
+bool check_id_m(struct Infor *, FILE * );//检查管理员ID是否合法
+bool check_id_g(struct Infor *, FILE * );//检查导游ID是否合法
+int  checkpassword_g(struct Infor *, FILE *);//password check _guide
+int  checkpassword_m(struct Infor *, FILE *);//password check _manager
+bool check_email_form(struct Infor *);//email check
+bool check_tel_form(struct Infor *);//tel check
+void verify();//管理员验证函数
+void total(int, struct Infor *);//总的登录
+void guideinter(struct Infor *);//导游登录界面
+void manageinter(struct Infor *);//管理员登录界面
+void Guide_change(struct Infor *);//导游修改个人信息函数
+void manage_change(struct Infor *);//管理员修改个人信息函数
+int admin_menu();      //管理员菜单
+void scene_search(int);   //景点查询
+void scene_add(int);      //景点添加
+void exit();    //退出
+void wrong();    //纠错系统
+int CHECKID(char *, int);
+int CHECKNUM(int);
+int INIT();
+int  Serchname(char * b, int number);   //查名字
+void Sercharea(char * c, int number);	//查地点
+void Discount();
+void Pricelist(int number);
+void Resttickects();
+void scene_search();//景点信息查询
+int history();//查看历史纪录的函数
+void paixu();//用户查看排序的函数
+void yuding_menu(struct Infor *);//预定的菜单
+void history_order(struct Infor *);//历史预订订单
+void canceled_order(struct Infor *, struct order *);//取消预订的订单
+void yupiao_jian(char *,int , int *, int *);
+void yupiao_jia(char *,int , int *, int *);
+void fun1(FILE *, int, int, int *, int *);//算余票变少的
+void fun2(FILE *, int, int, int *, int *);//算退票之后余票增加的
+void TUI(int);//退票函数
+void zongyuding(struct Infor *);//总的预定函数
+int turn_day();
+void move(int);
+
+
+struct Infor initialized;//设的一个结构
+struct Infor admin[100];
+struct scene_infor infor[100];
+struct spot read[12];
+time_t timep;
+struct tm * p;
+struct order abab;
+double FHighPrice;
+double FLowPrice;
+char choice;
+int year = 0,mon = 0,day = 0,hour = 0,min = 0;
+char Id1[7];
+float money;//旅游团花费价钱
+char gtime;//出行时间
+
+int main() {
+    
+    strcpy(initialized.UserID,"0");
+    strcpy(initialized.Password,"0");
+    strcpy(initialized.email,"0");
+    strcpy(initialized.tel,"0");
+    initialized.num_of_peo.all = 0;
+    initialized.num_of_peo.child = 0;
+    initialized.num_of_peo.middle = 0;
+    initialized.num_of_peo.old = 0;
+    initialized.num_of_peo.mil = 0;
+    initialized.num_of_peo.stud = 0;//Initialize the elements of the structure whose name is "initialized"
+    
+    int trans = 0;//初始化用来给total函数赋值的变量
+    int n = 0;
+    n = turn_day();
+    move(n);
+    
+    trans = loadfun(&initialized);//执行loadfun函数，并将返回值赋值给trans
+    total(trans, &initialized);//执行total函数，进入主菜单
+    
+    return 0;
+}
+
+
+int loadfun(struct Infor * guideinfor){
+    int num = 0;//定义并初始化用户选择的值
+    FILE * fp;
+    char userID[11];//用来给用户输入userID
+    
+    printf("\
+           -----------------------------------------\n\
+           *********欢迎进入景点预定管理系统*********\n\
+           -----------------------------------------\n");
+    
+    printf("请选择您需要的功能:\n\t1.导游;\t2.管理员;\t3.注册;\t4.退出\n");
+    while (1) {
+        fflush(stdin);
+        if (scanf("%d",&num) != 0) {
+            break;
+        }else{
+            printf("输入无效,请重新输入\n");
+        }
+    }//容错
+    
+    switch (num) {
+        case 1:
+        {
+            int check1 = 1;
+            int check2 = 1;//check1,check2为两个用来判断的变量
+            // char character[81];//用来将指针移动到文件末尾
+            while (check1) {
+                printf("UserID:");
+                scanf("%s",userID);//提取userID
+                fp = fopen("guide.txt", "r");
+                check2 = 1;
+                while (check2) {
+                    fscanf(fp, "%s %s %s %s\n", guideinfor->UserID, guideinfor->Password, guideinfor->email, guideinfor->tel);
+                    
+                    if (strcmp(guideinfor->UserID, userID) == 0 ) {//用来比较文件中是否有该导游账号
+                        fclose(fp);
+                        check2 = 0;
+                        check1 = 0;
+                    }else if(feof(fp) != 0){//如果读到文件末尾将执行该命令，并退出小循环
+                        printf("没有此用户，请重新输入:");
+                        check2 = 0;
+                        fclose(fp);
+                    }//无其他情况
+                }//while循环用来查重
+            }
+            fp = fopen("guide.txt", "r");
+            if (checkpassword_g(guideinfor, fp) == 0) {
+                printf("\n重新登录\n");
+                fclose(fp);
+                main();//重新登录
+            }//检查与该导游相对应的密码是否正确，否，则退出到开始界面
+        }
+            break;
+        case 2:
+        {
+            int check1 = 1;
+            int check2 = 1;//check1,check2为两个用来判断的变量
+            while (check1) {
+                printf("UserID:");
+                scanf("%s",userID);//提取userID
+                fp = fopen("admin.txt", "r");
+                check2 = 1;
+                while (check2) {
+                    fscanf(fp, "%s %s %s %s\n", guideinfor->UserID, guideinfor->Password, guideinfor->email, guideinfor->tel);
+                    
+                    if (strcmp(guideinfor->UserID, userID) == 0 ) {
+                        fclose(fp);
+                        check2 = 0;
+                        check1 = 0;
+                    }else if(feof(fp) != 0){
+                        printf("没有此用户，请重新输入:");
+                        check2 = 0;
+                        fclose(fp);
+                    }//无其他情况
+                }//while循环用来查重
+            }
+            fp = fopen("admin.txt", "r");
+            if (checkpassword_g(guideinfor, fp) == 0) {
+                printf("\n重新登录\n");
+                fclose(fp);
+                main();//重新登录
+            }//检查与该管理员相对应的密码是否正确，否，则退出到开始界面
+        }
+            break;
+        case 3:
+            registering(guideinfor);//用户选择该函数则进入注册界面
+            break;
+        case 4:
+            exit(-1);
+            break;
+        default:
+            main();//输入其他数字将自动跳回上一界面
+            break;
+    }
+    
+    return num;//如果登录将返回用户输入的值
+}
+
+void registering(struct Infor * guideinfor){
+    char repassword[30];//确认密码
+    int choice = 0;//用户用来选择的变量
+    int testnum = 0;//用于测试函数
+    FILE * fp;
+    
+    while(testnum == 0){
+        printf("\t1.导游注册\t2.管理员注册\n");
+        testnum = scanf("%d",&choice);
+    }//容错
+    
+    switch (choice) {
+        case 1:
+        {
+            system("cls");//清屏
+            printf("导游账号注册:\n");
+            
+            do {
+                printf("\t请输入您的用户ID(6-10位字母和数字):");
+                scanf("%s",guideinfor->UserID);
+            } while (!check_id_g(guideinfor,fp));//检查导游ID是否有重复的
+            
+            printf("\t请输入您账户的密码:");
+            scanf("%s",guideinfor->Password);
+            
+            printf("\t再次确认您的密码:");
+            scanf("%s",repassword);
+            
+            while(strncmp(guideinfor->Password, repassword,30) != 0){
+                printf("\t再次确认您的密码:");
+                scanf("%s",repassword);
+            }//检查两次输入的密码是否一致，直至再次确认成功
+            
+            do {
+                printf("\t请正确输入您的邮箱:");
+                scanf("%s",guideinfor->email);
+            } while (!check_email_form(guideinfor));
+            //检查email格式是否正确，是否是***@***.***
+            
+            do {
+                printf("\t请正确输入您的电话:");
+                scanf("%s",guideinfor->tel);
+            } while (!check_tel_form(guideinfor));//tel
+            //检查电话格式是否正确
+            
+            fp = fopen("guide.txt", "a");
+            
+            if (strncmp(guideinfor->Password, repassword,30)==0)
+            {
+                fprintf(fp, "%s\t%s\t%s\t%s\n", guideinfor->UserID, guideinfor->Password, guideinfor->email, guideinfor->tel);
+                //ID    密码   email   tel
+                fclose(fp);
+                //将信息成功写入管理员的guide.txt文件
+                do {
+                    printf("\n注册成功!\n1.返回上一级菜单\n2.直接登陆\n");
+                } while (scanf("%d",&choice) == 0);
+                switch (choice) {
+                    case 1:
+                        main();//返回主菜单
+                        break;
+                    case 2:
+                        total(1,guideinfor);//导游 登录界面的函数
+                        break;
+                    default:
+                        main();//输入其他值将自动返回主菜单
+                        break;
+                }
+            }else{
+                do {
+                    printf("注册失败！\n如果想重新注册，请输入1，若退出则输入0:\n");
+                } while (scanf("%d",&choice) == 0);//输入并检查格式是否正确
+                switch (choice)
+                {
+                    case 1:
+                        registering(guideinfor);
+                        break;
+                    case 0:
+                        printf("返回上一级菜单");//将退回到初始菜单
+                        main();
+                        break;
+                    default:
+                        printf("返回上一级菜单");
+                        main();//返回上一菜单
+                        break;
+                }
+            }
+            break;
+        }
+        case 2:
+        {
+            system("cls");
+            printf("管理员账号注册:\n");
+            
+            verify();   //管理员验证部分，输入验证码验证是否为景区的管理员
+            
+            do {
+                printf("\t请输入您的用户ID(6-10位数字和字母的组合):");
+                scanf("%s",guideinfor->UserID);
+            } while (!check_id_m(guideinfor,fp));//检查导游ID是否有重复的
+            
+            printf("\t请输入您账户的密码:");
+            scanf("%s",guideinfor->Password);
+            
+            printf("\t再次确认您的密码:");
+            scanf("%s",repassword);
+            
+            while(strncmp(guideinfor->Password, repassword,30)!=0){
+                printf("\t再次确认您的密码:");
+                scanf("%s",repassword);
+            }//检查两次输入的密码是否一致，直至再次确认成功
+            
+            do {
+                printf("\t请正确输入您的邮箱:");
+                scanf("%s",guideinfor->email);
+            } while (!check_email_form(guideinfor));
+            //检查email格式是否正确，***@***.***
+            
+            do {
+                printf("\t请正确输入您的电话:");
+                scanf("%s",guideinfor->tel);
+            } while (!check_tel_form(guideinfor));
+            //检查电话格式是否正确
+            
+            fp = fopen("admin.txt", "a");
+            
+            
+            fprintf(fp, "%s\t%s\t%s\t%s\n", guideinfor->UserID, guideinfor->Password, guideinfor->email, guideinfor->tel);
+            //ID    密码   email   tel
+            fclose(fp);
+            //将管理员信息写入了admin.txt文件
+            
+            if (strncmp(guideinfor->Password, repassword,30)==0) {
+                do {
+                    printf("\n注册成功!\n1.返回上一级菜单\n2.直接登陆\n");
+                } while (scanf("%d",&choice) == 0);
+                switch (choice) {
+                    case 1:
+                        main();//返回主菜单
+                        break;
+                    case 2:
+                        total(2,guideinfor);//管理员 登录界面的函数
+                        break;
+                    default:
+                        main();//输入其他值将自动返回主菜单
+                        break;
+                }
+            }else{
+                choice = '0';
+                do {
+                    printf("注册失败！\n如果想重新注册，请输入1，若退出注册界面则输入0，:\n");
+                } while (scanf("%d",&choice) == 0);//输入并检查格式是否正确
+                
+                switch (choice) {
+                    case 1:
+                        registering(guideinfor);
+                        break;
+                    case 0:
+                        printf("返回上一级菜单");
+                        main();//将退回到初始菜单
+                        break;
+                    default:
+                        printf("返回上一级菜单");
+                        main();//返回上一菜单
+                        break;
+                }
+            }
+        }
+            break;
+        default:
+            break;
+    }
+}
+
+int checkpassword_g(struct Infor * u, FILE * fp)//检查与该导游ID相对应的密码是否正确
+{
+    int count = 1;
+    char string[81];
+    
+    fp = fopen("guide.txt", "r");
+    printf("请输入密码:");
+    fflush(stdin);
+    scanf("%s",string);
+    
+    while (strncmp(u->Password, string,30)!=0 && count < 5) {
+        printf("请重新输入密码:");
+        fflush(stdin);
+        scanf("%s",string);
+        count++;
+    }//若密码与对应ID存入的密码不符，则重新输入密码，5次都输错的话则退出该循环
+    
+    if (strncmp(u->Password, string,30) == 0) {
+        return 1;
+    }else{
+        return 0;
+    }//检查密码是否一致，一致则返回1进行下一步操作，不一致则返回0，返回主菜单
+}
+
+int checkpassword_m(struct Infor * u, FILE * fp)//检查与该管理员ID相对应的密码是否正确
+{
+    int count = 1;
+    char string[81];
+    
+    fp = fopen("admin.txt", "r");
+    printf("请输入密码:");
+    fflush(stdin);
+    scanf("%s",string);
+    
+    while (strncmp(u->Password, string,30)!=0 && count < 5) {
+        printf("请重新输入密码:");
+        fflush(stdin);
+        scanf("%s",string);
+        count++;
+    }//若密码与对应ID存入的密码不符，则重新输入密码，5次都输错的话则退出该循环
+    
+    if (strncmp(u->Password, string,30) == 0) {
+        return 1;
+    }else{
+        return 0;
+    }//检查密码是否一致，一致则返回1进行下一步操作，不一致则返回0，返回主菜单
+}
+
+bool check_email_form(struct Infor * v)//检查email格式是否正确的函数
+{
+    char user[81];//email的第一部分,即"@"前的部分
+    char server[81];//email的第二部分，即"@"与"."之间的部分
+    char site[81];//email的第三部分，即"."之后的部分
+    
+    if (NULL == v) {
+        return false;
+    }//如果未输入邮箱，该布尔型的函数则返回false
+    
+    sscanf(v->email, "%[0-9a-zA-Z-_.]%[@0-9a-zA-Z-_]%[0-9a-zA-Z-_.]$",user,server,site);
+    //将email分为三个部分赋值给三个不同的字符串，即user、server、site
+    if (0 < strlen(user) && 0 < strlen(server)) {
+        if (0 < strlen(site) && ((strlen(user)+strlen(server)+strlen(site)))) {
+            if ('@' == server[0]) {
+                if ('.' == site[0]) {
+                    return true;
+                }
+            }
+        }
+    }//若上述条件都满足，则返回true
+    return false;//上述所有if语句中，只要有一个不符合条件即返回false
+}
+
+bool check_tel_form(struct Infor * w)//检查电话格式的函数，将电话以指针的形式发送到函数，直接对程序最开始的结构进行修改
+{
+    char telnum[20];
+    
+    if (NULL == w) {
+        printf("格式错误!\n");
+        return false;
+    }//若该结构指针指代的tel内容为空的话，则打印结构错误并返回false，若有值，则继续进行下一步操作
+    
+    sscanf(w->tel, "%s",telnum);//将tel内容以％s的形式发送给telnum，也可用strcpy函数
+    
+    if (strlen(telnum) == 11)
+    {
+        for (int j = 0; j < 11; ++j) {
+            if ((w->tel[j]) >= 48 && (w->tel[j]) <= 57) {
+                if (j == 10) {
+                    return true;
+                }//检查电话的11位内容，若检查到末尾则返回真值
+            }else{
+                printf("格式错误!\n");
+                return false;
+            }//检查出任何一位不满足要求则返回false
+        }
+        printf("格式错误!\n");
+        return false;
+    }else{
+        printf("格式错误!\n");
+        return false;
+    }//最外面的if语句是用来检查电话是否为11位
+}
+
+bool check_id_m(struct Infor * w, FILE * fp){
+    char userID[11]={'\0'};
+    char character[200];//字符型指针，指向存储读入数据的缓存区地址
+    
+    fp = fopen("admin.txt", "a+");
+    while (1) {
+        fscanf(fp, "%s", userID);
+        fgets(character, 199, fp);//从文件中读取出userID并将指针移到行末尾
+        if (strcmp(w->UserID, userID) == 0 ) {//检查是否有重复的ID，如果有则打印用户名已注册，并返回false
+            printf("\n用户名已注册!\n\n");
+            fclose(fp);
+            return false;
+        }else if(feof(fp) != 0){
+            break;
+        }//若文件没有相同的管理员userID并且已读到文件末尾，则跳出该循环
+    }//该过程为查重
+    
+    fclose(fp);
+    
+    if (strlen(w->UserID) <= 10 && strlen(w->UserID) >= 6) {
+        for (int j = 0; j < strlen(w->UserID); j++) {
+            if (isdigit(w->UserID[j]) != 0 || (islower(w->UserID[j]) + isupper(w->UserID[j])) != 0)
+            {
+                continue;
+            }else{
+                return false;
+            }
+        }//for循环用来判断ID是否仅由字母和数字共同组成
+        return true;
+    }else{
+        return false;
+    }//最外面的if语句用来判断ID是否为6-10位
+}
+
+bool check_id_g(struct Infor * w, FILE * fp){
+    char userID[11]={'\0'};
+    char character[200];//字符型指针，指向存储读入数据的缓存区地址
+    
+    fp = fopen("guide.txt", "a+");
+    //用a+是为了在程序最开始运行时没有文件，但又需要读取内容
+    while (1) {
+        fflush(stdin);
+        fscanf(fp, "%s", userID);
+        fgets(character, 199, fp);
+        if (strcmp(w->UserID, userID) == 0 ) {
+            printf("\n用户名已注册!\n\n");
+            fclose(fp);
+            return false;
+        }else if(feof(fp) != 0){
+            break;
+        }//若文件没有相同的导游userID并且已读到文件末尾，则跳出该循环
+    }//该过程为查重
+    fclose(fp);
+    
+    if (strlen(w->UserID) <= 10 && strlen(w->UserID) >= 6) {
+        for (int j = 0; j < strlen(w->UserID); j++) {
+            if (isdigit(w->UserID[j]) != 0 || (islower(w->UserID[j]) + isupper(w->UserID[j])) != 0)
+            {
+                continue;
+            }else{
+                return false;
+            }
+        }//for循环用来判断ID是否仅由字母和数字共同组成
+        return true;
+    }else{
+        return false;
+    }//最外面的if语句用来判断ID是否为6-10位
+}
+
+void verify(){
+    /*定义两个char型数组*/
+    char verification[81];//第一个用来存放用户输入的验证码
+    char verification2[81];//第二个用来存放从验证码存放的文件中读取出来的内容
+    
+    printf("请输入您的验证码:");
+    scanf("%s",verification);//输入验证码
+    FILE * verify_code;
+    
+    char character_code[200];//字符型检查验证码指针，指向存储读入数据的缓存区地址
+    
+    verify_code = fopen("admin_verify.txt", "r+");
+    while (1) {
+        fscanf(verify_code, "%s\n", verification2);
+        fgets(character_code, 199, verify_code);  //用来将指针移动到文件末尾
+        if (strcmp(verification, verification2) == 0) {
+            printf("验证成功!\n");
+            fclose(verify_code);
+            break;
+        }else if(feof(verify_code) != 0) {
+            printf("验证失败!\n");
+            fclose(verify_code);
+            verify();
+        }//若两个数组内容一样则验证成功，否则重新验证
+        
+    }
+}
+
+/*************************************以下为登录界面功能**************************************/
+void total(int trans, struct Infor * initialized)//用loadfun的返回值判断用户为导游还是管理员
+{
+    system("cls");//clear the screan
+    switch (trans) {
+        case 1:
+            printf("登录成功!\n");
+            guideinter(initialized);//进入导游界面
+            break;
+        case 2:
+            printf("登录成功!\n");
+            manageinter(initialized);//进入管理员界面
+            break;
+        default:
+            exit(-1);
+            break;
+    }
+    printf("\n\t\t\t结束程序\n");
+}
+
+void guideinter(struct Infor * fp){
+    int choice = 0;
+    
+    printf("\t请选择你要使用的功能:\n\t1.景点查询\t2.景点预定\t3.信息管理\n\
+           4.查询预订信息\t5.取消预订\t6.退出登录\n");
+    while (scanf("%d",&choice) == EOF){
+        printf("无效请重新输入");
+    }
+    
+    system("cls");
+    switch (choice) {
+        case 1:
+            scene_search();//景点查询功能函数
+            break;
+        case 2:
+            zongyuding(fp);//景点预定功能函数
+            break;
+        case 3:
+            Guide_change(fp);//导游个人信息管理函数
+            break;
+        case 4:
+            yuding_menu(fp);//查询预订信息函数
+            break;
+        case 5:
+            TUI(day);//取消预订函数
+            break;
+        case 6:
+            main();//退出登录，返回到初始界面
+            break;
+        default:
+            guideinter(&initialized);//重新返回到界面
+            break;
+    }//in the switch struct, case 1-5 are point to the function I didn't mentioned here. (reason is on the top of this code file)
+}
+
+/*管理员界面的主体函数*/
+void manageinter(struct Infor * fp)
+{
+
+		int n = 0;
+    n = INIT();
+    int x;
+    do
+    {
+        x = admin_menu();
+        switch(x)
+        {
+            case 1:
+                scene_search(n);
+                break;
+            case 2:
+                scene_add(n);
+                break;
+            case 3:
+                manage_change(&initialized);
+                break;
+            case 4:
+                paixu();
+                break;
+            case 5:
+                exit();
+                break;
+            default:
+                wrong();
+                break;
+        }
+        
+    }while(x != 5);
+}
+
+/**********************************以下为更改导游和管理员账号里的个人信息************************************/
+
+void Guide_change(struct Infor * fp){
+    int choice = 0;
+    int count = 0;
+    struct Infor transmit;
+    struct Infor copy;
+    
+    FILE * guidefile;
+    FILE * guidefile_blank;
+    guidefile = fopen("guide.txt", "r");
+    guidefile_blank = fopen("guide_modify", "w");
+    char contrast[30];
+    char repassword[30];
+    
+    strcpy(contrast, "\0");
+    strcpy(repassword, "\0");
+    
+    system("cls");
+    //ID    密码   email   tel
+    while (feof(guidefile) == 0) {
+        fscanf(guidefile, "%s %s %s %s\n", transmit.UserID, transmit.Password, transmit.email, transmit.tel);
+        
+        if (strcmp(transmit.UserID, fp->UserID) != 0) {
+            fprintf(guidefile_blank, "%s\t%s\t%s\t%s\n", transmit.UserID, transmit.Password, transmit.email, transmit.tel);
+        }else{
+            strcpy(copy.UserID, transmit.UserID);
+            strcpy(copy.Password, transmit.Password);
+            strcpy(copy.tel, transmit.tel);
+            strcpy(copy.email, transmit.email);
+        }
+    }//先将不是该用户的帐号信息内容写进一个临时文件里
+    fclose(guidefile);
+    fclose(guidefile_blank);
+
+		printf("您的个人信息为:\n电话\t\t|\t邮箱\n");
+    
+    printf("%s\t%s\n", copy.tel, copy.email);
+    
+    printf("\t信息修改:\n\t1.电话\t2.密码\t3.邮箱\t4.返回上一级菜单\n");
+    fflush(stdin);
+    scanf("%d",&choice);//用户自由选择要修改的内容
+    
+    switch (choice) {
+        case 1://修改个人电话
+            do {
+                printf("\t请输入您新的电话:");
+                scanf("%s",copy.tel);
+            } while (!check_tel_form(&copy));
+            break;
+        case 2://修改个人密码
+            printf("\t请输入您账户的密码:");
+            scanf("%s",contrast);
+            
+            while(strncmp(fp->Password, contrast,30) != 0 && count <= 5){
+                printf("\t再次确认您的密码:");
+                scanf("%s",contrast);
+                count++;
+            }
+            if (strncmp(fp->Password, contrast,30) != 0) {
+                printf("\n");
+                Guide_change(fp);
+            }//如果原始密码输入错误则重新修改
+            
+            printf("\t请输入您账户的新密码:");
+            scanf("%s",copy.Password);
+            
+            printf("\t再次确认您更改的密码:");
+            scanf("%s",repassword);
+            
+            while(strncmp(copy.Password, repassword,30)!=0){
+                printf("\t再次确认您更改的密码:");
+                scanf("%s",repassword);
+            }
+            break;
+        case 3://修改邮箱
+            do {
+                printf("\t请正确输入您新的邮箱:");
+                scanf("%s",copy.email);
+            } while (!check_email_form(&copy));
+            break;
+        case 4://返回上一级菜单
+            guideinter(fp);
+            break;
+        default:
+            guideinter(fp);
+            break;
+    }
+    
+    guidefile_blank = fopen("guide_modify", "r");
+    guidefile = fopen("guide.txt", "w");
+    while (feof(guidefile_blank) == 0){
+        fscanf(guidefile_blank, "%s %s %s %s\n", transmit.UserID, transmit.Password, transmit.email, transmit.tel);
+        fprintf(guidefile, "%s\t%s\t%s\t%s\n", transmit.UserID, transmit.Password, transmit.email, transmit.tel);
+    }//将临时文件储存的其他用户的信息重新写入原始文件
+    
+    fprintf(guidefile, "%s\t%s\t%s\t%s\n", copy.UserID, copy.Password, copy.email, copy.tel);
+    strcpy(fp->Password, copy.Password);
+    //再将修改后的文件写入原始文件,并将密码赋值给最开始的结构
+    
+    //ID    密码   email   tel
+    
+    fclose(guidefile_blank);
+    fclose(guidefile);
+    printf("更改成功!\n");
+    choice = 0;
+    printf("\n\t1.退出修改个人信息\n\t2.继续修改\n");
+    
+    while (1) {
+        if (scanf("%d",&choice) != EOF) {
+            break;
+        }else{
+            printf("输入无效请重新输入\n");
+        }
+    }//容错
+    switch (choice) {
+        case 1:
+            guideinter(fp);//返回到原始界面
+            break;
+        case 2:
+            Guide_change(fp);//继续修改
+            break;
+        default:
+            guideinter(fp);
+            break;
+    }
+}
+
+void manage_change(struct Infor * fp){
+    int choice = 0;
+    int count = 0;
+    struct Infor transmit;
+    struct Infor copy;
+    
+    FILE * adminfile;
+    FILE * adminfile_blank;
+    adminfile = fopen("admin.txt", "r");
+    adminfile_blank = fopen("admin_modify", "w");
+    char contrast[30];
+    char repassword[30];
+    
+    strcpy(contrast, "\0");
+    strcpy(repassword, "\0");
+    system("cls");
+    //ID    密码   email   tel
+    while (feof(adminfile) == 0) {
+        fscanf(adminfile, "%s %s %s %s\n", transmit.UserID, transmit.Password, transmit.email, transmit.tel);
+        
+        if (strcmp(transmit.UserID, fp->UserID) != 0) {
+            fprintf(adminfile_blank, "%s\t%s\t%s\t%s\n", transmit.UserID, transmit.Password, transmit.email, transmit.tel);
+        }else{
+            strcpy(copy.UserID, transmit.UserID);
+            strcpy(copy.Password, transmit.Password);
+            strcpy(copy.tel, transmit.tel);
+            strcpy(copy.email, transmit.email);
+        }//无其他情况
+        
+    }
+    fclose(adminfile);
+    fclose(adminfile_blank);
+    
+    printf("您的个人信息为:\n电话\t\t|\t邮箱\n");
+    
+    printf("%s\t%s\n", copy.tel, copy.email);
+    
+    printf("\t信息修改:\n\t1.电话\t2.密码\t3.邮箱\t4.返回上一级菜单\n");
+    fflush(stdin);
+    scanf("%d",&choice);
+    
+    switch (choice) {
+        case 1://修改电话
+            
+            do {
+                printf("\t请输入您新的电话:");
+                scanf("%s",copy.tel);
+            } while (!check_tel_form(&copy));
+            break;
+        case 2://修改密码
+            printf("\t请输入您账户的密码:");
+            scanf("%s",contrast);
+            
+            while(strncmp(fp->Password, contrast,30)!=0 && count <= 5){
+                printf("\t再次确认您的密码:");
+                scanf("%s",contrast);
+                count++;
+            }
+            if (strncmp(fp->Password, contrast,30)!=0) {
+                printf("\n");
+                Guide_change(fp);
+            }
+            
+            printf("\t请输入您账户的新密码:");
+            scanf("%s",copy.Password);
+            
+            printf("\t再次确认您更改的密码:");
+            scanf("%s",repassword);
+            
+            while(strncmp(copy.Password, repassword,30) != 0){
+                printf("\t再次确认您更改的密码:");
+                scanf("%s",repassword);
+            }
+            break;
+        case 3://修改邮箱
+            do {
+                printf("\t请正确输入您新的邮箱:");
+                scanf("%s",copy.email);
+            } while (!check_email_form(&copy));
+            break;
+        case 4:
+            manageinter(fp);//返回上一界面
+            break;
+        default:
+            manageinter(fp);
+            break;
+    }
+    
+    adminfile_blank = fopen("admin_modify", "r");
+    adminfile = fopen("admin.txt", "w");
+    while (feof(adminfile_blank) == 0){
+        fscanf(adminfile_blank, "%s %s %s %s\n", transmit.UserID, transmit.Password, transmit.email, transmit.tel);
+        fprintf(adminfile, "%s\t%s\t%s\t%s\n", transmit.UserID, transmit.Password, transmit.email, transmit.tel);
+    }//将临时文件储存的内容重新写入原始文件
+    
+    fprintf(adminfile, "%s\t%s\t%s\t%s\n", copy.UserID, copy.Password, copy.email, copy.tel);
+    strcpy(fp->Password, copy.Password);
+    //再将修改后的文件写入原始文件,并将密码赋值给最开始的结构
+    
+    //ID    密码   email   tel
+    
+    fclose(adminfile_blank);
+    fclose(adminfile);
+    printf("更改成功!\n");
+    choice = 0;
+    printf("\n\t1.退出修改个人信息\n\t2.继续修改\n");
+    
+    while (1) {
+        if (scanf("%d",&choice) != EOF) {
+            break;
+        }else{
+            printf("输入无效请重新输入\n");
+        }
+    }
+    switch (choice) {
+        case 1:
+            manageinter(fp);//返回上一界面
+            break;
+        case 2:
+            manage_change(fp);//继续修改
+            break;
+        default:
+            manageinter(fp);//自动返回上一界面
+            break;
+    }
+}
+
+/***********************************查询预订信息*************************************/
+
+void yuding_menu(struct Infor * fp)
+{
+    system("cls");
+    int choice = 0;
+    struct order q;
+    int k = 1;
+    
+    printf("\t1.查询历史订单\t2.查询取消的订单\t3.返回上一界面\n");
+    
+    do {
+        do {
+            printf("请选择: ");
+        } while (scanf("%d",&choice) == EOF);
+        switch (choice) {
+            case 1:
+                history_order(fp);
+                break;
+            case 2:
+                canceled_order(fp, &q);
+                break;
+            case 3:
+                guideinter(&initialized);//其他函数
+                break;
+            default:
+                guideinter(&initialized);
+                break;
+        }
+        choice = 0;
+        
+        do {
+            printf("如果您想继续查询请按1，否则请按0:");
+        } while (scanf("%d",&choice) == EOF);
+        
+        if (choice == 1) {
+            k = 1;
+        }else if(choice == 0){
+            k = 0;
+        }else{
+            k = 0;
+        }
+    } while (k);
+    
+}
+
+void history_order(struct Infor * fp){//查看历史订单的函数
+    FILE * guide;
+    struct order copy;
+    guide = fopen("small_all_infor.txt", "r");
+    int choice = 0;
+    if (guide == NULL) {
+        printf("文件未打开\n");
+        fclose(guide);
+        yuding_menu(&initialized);
+    }
+    
+    printf("您预订的历史订单:\n|\t订单编号  |\t预定时间|景点编号|出行时间|0-12岁|13-70岁|71+|总人数|军人|学生|总价格\n");
+    
+    while (fscanf(guide, "%s %s %s %s %s %d %d %d %d %d %d %f %d %d\n", copy.user, copy.order_num, copy.order_time, copy.sence, copy.out_time, &copy.num_of_peo.child, &copy.num_of_peo.middle, &copy.num_of_peo.old, &copy.num_of_peo.all, &copy.num_of_peo.mil, &copy.num_of_peo.stud, &copy.price, &copy.peo_in_dan, &copy.peo_in_wang) != EOF){
+        if (strcmp(fp->UserID, copy.user) == 0){
+            printf("%s %s %s %s %d %d %d %d %d %d %.2f\n", copy.order_num, copy.order_time, copy.sence, copy.out_time, copy.num_of_peo.child, copy.num_of_peo.middle, copy.num_of_peo.old, copy.num_of_peo.all, copy.num_of_peo.mil, copy.num_of_peo.stud, copy.price);
+        }
+    }
+    
+    do
+    {
+        printf("\n请选择您将进行的操作\n1.继续查询\n2.返回上一菜单\n");
+    }while(scanf("%d", &choice) == 0);
+    
+    switch(choice){
+        case 1:
+            fclose(guide);
+            yuding_menu(&initialized);
+            break;
+        case 2:
+            fclose(guide);
+            guideinter(&initialized);
+            break;
+        default:
+            fclose(guide);
+            yuding_menu(&initialized);
+            break;
+    }
+}
+
+void canceled_order(struct Infor * fp, struct order * p){//查看已取消的订单的函数
+    FILE * guide;
+    struct order copy;
+    guide = fopen("canceled.txt", "r");
+    if (guide == NULL) {
+        printf("文件未打开\n");
+        fclose(guide);
+        yuding_menu(&initialized);
+    }
+    
+    printf("您取消的历史订单:\n|\t订单编号  |\t预定时间|景点编号|出行时间|0-12岁|13-70岁|71+|总人数|军人|学生|总价格\n");
+    while (fscanf(guide, "%s %s %s %s %s %d %d %d %d %d %d %f %d %d\n", copy.user, copy.order_num, copy.order_time, copy.sence, copy.out_time, &copy.num_of_peo.child, &copy.num_of_peo.middle, &copy.num_of_peo.old, &copy.num_of_peo.all, &copy.num_of_peo.mil, &copy.num_of_peo.stud, &copy.price, &copy.peo_in_dan, &copy.peo_in_wang) != EOF){
+        if (strcmp(fp->UserID, copy.user) == 0){
+            printf("%s %s %s %s %d %d %d %d %d %d %.2f\n", copy.order_num, copy.order_time, copy.sence, copy.out_time, copy.num_of_peo.child, copy.num_of_peo.middle, copy.num_of_peo.old, copy.num_of_peo.all, copy.num_of_peo.mil, copy.num_of_peo.stud, copy.price);
+        }
+    }
+    
+    int choice = 0;
+    
+    do
+    {
+        printf("\n请选择您将进行的操作\n1.继续查询\n2.返回上一菜单\n");
+    }while(scanf("%d", &choice) == 0);
+    
+    switch(choice){
+        case 1:
+            fclose(guide);
+            yuding_menu(&initialized);
+            break;
+        case 2:
+            fclose(guide);
+            guideinter(&initialized);
+            break;
+        default:
+            fclose(guide);
+            yuding_menu(&initialized);
+            break;
+    }
+}
+
+
