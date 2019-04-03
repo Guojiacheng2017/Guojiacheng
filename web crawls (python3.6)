@@ -1,0 +1,53 @@
+from urllib.request import urlopen
+# from bs4 import BeautifulSoup
+import tqdm
+import re
+
+# headers = {'User-Agent':'Mozilla/5.0(Wimdows NT 6.1; WOW64) AppleWebkit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36'}
+# 构造浏览器模拟（应对403禁止访问）
+url = "http://www.hengyan.com"
+html = urlopen("http://www.hengyan.com/dir/11540.aspx").read().decode()
+
+website = re.findall(r'<a href="(.*?)" title=',html)
+
+name = re.findall(r'第(.*?)</a>',html)  # all the title the novel have
+name1 = re.findall(r'第(.*?)<label>VIP</label>',html)  # after 100 chapters' title
+name1[0] = "101章 灭黑石帮（一）"
+
+Name = name[0:100]
+Name.extend(name1) # covered the original title gets from the website
+res = []
+
+for i in website:
+    a = ''
+    a = url + i
+    res.append(a)
+
+dict_name = {}  # able to use this one
+
+# print(len(name))
+# print(len(res))
+
+for j in range(len(Name)):
+    b = ''
+    b = '第'+ Name[j]
+    dict_name[res[j]] = b
+    
+# print(dict_name)
+
+
+
+for web in tqdm.tqdm(range(len(res))):
+    subweb = urlopen(res[web]).read().decode('utf-8')
+    subwebsite = re.findall(r'<div class="content">(.*?)</div>', subweb)
+    
+    lujing = "/Users/bling/Desktop/SJQZZDS/" + dict_name[res[web]] + ".txt"
+    # try to change
+    
+    document = open(lujing,"a+")
+    
+    for para in subwebsite:
+        content = re.findall(r'<p>\u3000\u3000(.*?)</p>', para)
+        document.writelines(content)
+        # print(content)
+    document.close()
